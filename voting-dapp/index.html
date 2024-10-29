@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting DApp</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
+</head>
+
+<body>
+    <h1>Voting DApp</h1>
+    <button id="voteAlice">Vote for Alice</button>
+    <button id="voteBob">Vote for Bob</button>
+    <div id="message"></div>
+
+    <h2>Current Vote Counts</h2>
+    <div id="voteCounts">
+        <p>Alice: <span id="aliceVotes">0</span></p>
+        <p>Bob: <span id="bobVotes">0</span></p>
+    </div>
+
+    <script>
+        const contractAddress = "0x34992b171D4717E25A68f971b41F782195aB2E42"; // Replace with your deployed contract address
+        const abi = [
+            "function vote(uint candidateId)",
+            "function getCandidate(uint candidateId) view returns (string memory name, uint voteCount)",
+            "event votedEvent(uint indexed candidateId)"
+        ];
+
+        async function vote(candidateId) {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            const contract = new ethers.Contract(contractAddress, abi, signer);
+
+            try {
+                const tx = await contract.vote(candidateId);
+                await tx.wait();
+                document.getElementById("message").innerText = "Vote cast successfully!";
+                updateVoteCounts(); // Update vote counts after voting
+            } catch (error) {
+                console.error(error);
+                document.getElementById("message").innerText = "Error casting vote.";
+            }
+        }
+
+        async function updateVoteCounts() {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const contract = new ethers.Contract(contractAddress, abi, provider);
+
+            try {
+                const aliceData = await contract.getCandidate(0);
+                const bobData = await contract.getCandidate(1);
+
+                document.getElementById("aliceVotes").innerText = aliceData.voteCount.toString();
+                document.getElementById("bobVotes").innerText = bobData.voteCount.toString();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Initial call to display vote counts on page load
+        window.onload = updateVoteCounts;
+
+        document.getElementById("voteAlice").onclick = () => vote(0);
+        document.getElementById("voteBob").onclick = () => vote(1);
+    </script>
+</body>
+
+</html>
